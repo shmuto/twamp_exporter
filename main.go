@@ -64,6 +64,8 @@ func main() {
 		if err != nil {
 			log.Print("could not establishe the session")
 			twampSuccessGauge.Set(0)
+			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+			h.ServeHTTP(w, r)
 			return
 		}
 
@@ -71,6 +73,8 @@ func main() {
 		if err != nil {
 			log.Print("coould not create the test")
 			twampSuccessGauge.Set(0)
+			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+			h.ServeHTTP(w, r)
 			return
 		}
 
