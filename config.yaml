@@ -1,5 +1,5 @@
 controlPort: 862
 senderPort: 19000
 receiverPort: 19000
-count: 3000
+count: 100
 timeout: 1
