@@ -75,7 +75,7 @@ func main() {
 
 		twampServerIPandPort := targetIP.String() + ":" + strconv.Itoa(config.ControlPort)
 
-		// connect twamp server
+		// TWAMP process
 		c := twamp.NewClient()
 		connection, err := c.Connect(twampServerIPandPort)
 		if err != nil {
@@ -118,6 +118,7 @@ func main() {
 		session.Stop()
 		connection.Close()
 
+		// setup metrics
 		twampMinRTTGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "twamp_min_rtt",
 			Help: "TWAMP Minimum RTT",
