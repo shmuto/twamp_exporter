@@ -39,17 +39,21 @@ func main() {
 	configFile, err := ioutil.ReadFile("config.yaml")
 	if err != nil {
 		log.Print("no configuration file found")
-		os.Exit(1)
 	}
 
-	log.Print("parsing configuration")
 	config := Config{}
+
+	if configFile == nil {
+		log.Print("loading default configuration")
+		config = DefaultConfig
+	} else {
+		log.Print("loading configuration")
 	err = yaml.Unmarshal(configFile, &config)
 	if err != nil {
-		log.Print("configuration parse failed")
+			log.Print("failed to load configuration")
 		os.Exit(1)
 	}
-	log.Print(config)
+	}
 
 	http.HandleFunc("/probe", func(w http.ResponseWriter, r *http.Request) {
 
