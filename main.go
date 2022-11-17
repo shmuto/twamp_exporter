@@ -22,6 +22,16 @@ type Config struct {
 	Timeout      int `yaml:"timeout"`
 }
 
+var (
+	DefaultConfig = Config{
+		ControlPort:  862,
+		SenderPort:   19000,
+		ReceiverPort: 19000,
+		Count:        100,
+		Timeout:      1,
+	}
+)
+
 func main() {
 
 	log.Print("loading configuration file")
@@ -33,7 +43,7 @@ func main() {
 	}
 
 	log.Print("parsing configuration")
-	var config Config
+	config := Config{}
 	err = yaml.Unmarshal(configFile, &config)
 	if err != nil {
 		log.Print("configuration parse failed")
