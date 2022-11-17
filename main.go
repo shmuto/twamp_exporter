@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -34,9 +35,11 @@ var (
 
 func main() {
 
-	log.Print("loading configuration file")
+	var configFileFlag = flag.String("config.file", "config.yaml", "path to config file")
+	flag.Parse()
+
 	// load config
-	configFile, err := ioutil.ReadFile("config.yaml")
+	configFile, err := ioutil.ReadFile(*configFileFlag)
 	if err != nil {
 		log.Print("no configuration file found")
 	}
@@ -47,12 +50,12 @@ func main() {
 		log.Print("loading default configuration")
 		config = DefaultConfig
 	} else {
-		log.Print("loading configuration")
-	err = yaml.Unmarshal(configFile, &config)
-	if err != nil {
+		log.Print("loading configuration from " + *configFileFlag)
+		err = yaml.Unmarshal(configFile, &config)
+		if err != nil {
 			log.Print("failed to load configuration")
-		os.Exit(1)
-	}
+			os.Exit(1)
+		}
 	}
 
 	http.HandleFunc("/probe", func(w http.ResponseWriter, r *http.Request) {
