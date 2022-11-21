@@ -36,6 +36,7 @@ var (
 func main() {
 
 	var configFileFlag = flag.String("config.file", "config.yaml", "path to config file")
+	var webListeningAddressFlag = flag.String("web.listen-address", "localhost:2112", "listening addres and port")
 	flag.Parse()
 
 	// load config
@@ -57,6 +58,8 @@ func main() {
 			os.Exit(1)
 		}
 	}
+
+	log.Print("Listening on " + *webListeningAddressFlag)
 
 	http.HandleFunc("/probe", func(w http.ResponseWriter, r *http.Request) {
 
@@ -148,5 +151,5 @@ func main() {
 		h.ServeHTTP(w, r)
 	})
 
-	http.ListenAndServe(":2112", nil)
+	http.ListenAndServe(*webListeningAddressFlag, nil)
 }
