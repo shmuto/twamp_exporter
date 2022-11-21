@@ -125,27 +125,21 @@ func main() {
 		session.Stop()
 		connection.Close()
 
-		// setup metrics
-		twampMinRTTGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "twamp_min_rtt",
-			Help: "TWAMP Minimum RTT",
-		})
-		twampMaxRTTGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "twamp_max_rtt",
-			Help: "TWAMP Maximum RTT",
-		})
-		twampAvgRTTGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "twamp_avg_rtt",
-			Help: "TWAMP Average RTT",
-		})
+		// setupMetrics
+		twampDurationGauge := prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "twamp_duration_seconds",
+				Help: "measurement result of TWAMP",
+			},
+			[]string{"direction", "type"},
+		)
 
-		registry.MustRegister(twampMinRTTGauge)
-		registry.MustRegister(twampMaxRTTGauge)
-		registry.MustRegister(twampAvgRTTGauge)
+		registry.MustRegister(twampDurationGauge)
 
-		twampMinRTTGauge.Set(float64(results.Stat.Min.Seconds()))
-		twampMaxRTTGauge.Set(float64(results.Stat.Max.Seconds()))
-		twampAvgRTTGauge.Set(float64(results.Stat.Avg.Seconds()))
+		twampDurationGauge.WithLabelValues("both", "min").Set(float64(results.Stat.Min.Seconds()))
+		twampDurationGauge.WithLabelValues("both", "avg").Set(float64(results.Stat.Min.Seconds()))
+		twampDurationGauge.WithLabelValues("both", "max").Set(float64(results.Stat.Avg.Seconds()))
+
 		twampSuccessGauge.Set(1)
 
 		h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
