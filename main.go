@@ -71,7 +71,7 @@ func main() {
 		targetIP := net.ParseIP(r.URL.Query().Get("target"))
 
 		if targetIP == nil {
-			log.Print("target IP is not provided")
+			log.Print("target is not provided")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -101,6 +101,7 @@ func main() {
 				TOS:          0,
 			},
 		)
+
 		if err != nil {
 			log.Print("failed to create session")
 			twampSuccessGauge.Set(0)
