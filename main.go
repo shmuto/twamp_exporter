@@ -164,8 +164,8 @@ func main() {
 		registry.MustRegister(twampDurationGauge)
 
 		twampDurationGauge.WithLabelValues("both", "min").Set(float64(results.Stat.Min.Seconds()))
-		twampDurationGauge.WithLabelValues("both", "avg").Set(float64(results.Stat.Min.Seconds()))
-		twampDurationGauge.WithLabelValues("both", "max").Set(float64(results.Stat.Avg.Seconds()))
+		twampDurationGauge.WithLabelValues("both", "avg").Set(float64(results.Stat.Avg.Seconds()))
+		twampDurationGauge.WithLabelValues("both", "max").Set(float64(results.Stat.Max.Seconds()))
 
 		twampDurationGauge.WithLabelValues("back", "min").Set(float64(twampDurationBckMin.Seconds()))
 		twampDurationGauge.WithLabelValues("back", "avg").Set(float64(twampdurationBckTotal / float64(config.Count)))
