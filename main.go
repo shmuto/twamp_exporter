@@ -13,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
-	"github.com/tcaine/twamp"
+	"github.com/shmuto/twamp"
 	"gopkg.in/yaml.v2"
 )
 
@@ -129,6 +129,10 @@ func main() {
 		var twampdurationBckTotal float64 = 0
 
 		results := test.RunX(config.Count, func(result *twamp.TwampResults) {
+			log.Print(time.Now())
+			log.Print(twamp.NewTwampTimestamp(time.Now()))
+			log.Print(result.SenderTimestamp)
+			log.Print(result.ReceiveTimestamp)
 
 			twampDurationFwd := result.ReceiveTimestamp.Sub(result.SenderTimestamp)
 			twampDurationBck := result.FinishedTimestamp.Sub(result.Timestamp)
