@@ -18,22 +18,20 @@ import (
 )
 
 type Config struct {
-	ControlPort  int `yaml:"controlPort"`
-	SenderPort   int `yaml:"senderPort"`
-	ReceiverPort int `yaml:"receiverPort"`
-	Count        int `yaml:"count"`
-	Timeout      int `yaml:"timeout"`
+	ControlPort  int16 `yaml:"controlPort"`
+	SenderPort   int16 `yaml:"senderPort"`
+	ReceiverPort int16 `yaml:"receiverPort"`
+	Count        int   `yaml:"count"`
+	Timeout      int   `yaml:"timeout"`
 }
 
-var (
-	DefaultConfig = Config{
-		ControlPort:  862,
-		SenderPort:   19000,
-		ReceiverPort: 19000,
-		Count:        100,
-		Timeout:      1,
-	}
-)
+var DefaultConfig = Config{
+	ControlPort:  862,
+	SenderPort:   19000,
+	ReceiverPort: 19000,
+	Count:        100,
+	Timeout:      1,
+}
 
 func main() {
 
