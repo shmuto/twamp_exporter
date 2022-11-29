@@ -41,8 +41,9 @@ func main() {
 
 	// load config
 	configFile, err := ioutil.ReadFile(*configFileFlag)
-	if err != nil {
-		log.Print("no configuration file found")
+	if err != nil || configFile == nil {
+		log.Print("failed to load " + *configFileFlag)
+		os.Exit(1)
 	}
 
 	config := Config{}
@@ -71,7 +72,12 @@ func main() {
 		targetIP := net.ParseIP(r.URL.Query().Get("target"))
 
 		if targetIP == nil {
+			msg := "target is not provided"
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(msg))
 			log.Print("target is not provided")
+			return
+		}
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
