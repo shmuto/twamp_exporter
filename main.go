@@ -18,20 +18,20 @@ import (
 )
 
 type Config struct {
-	ControlPort  int16 `yaml:"controlPort"`
-	SenderPort   int16 `yaml:"senderPort"`
-	ReceiverPort int16 `yaml:"receiverPort"`
-	Count        int   `yaml:"count"`
-	Timeout      int   `yaml:"timeout"`
+	ControlPort  uint16 `yaml:"controlPort"`
+	SenderPort   uint16 `yaml:"senderPort"`
+	ReceiverPort uint16 `yaml:"receiverPort"`
+	Count        uint   `yaml:"count"`
+	Timeout      uint   `yaml:"timeout"`
 }
 
-var DefaultConfig = Config{
-	ControlPort:  862,
-	SenderPort:   19000,
-	ReceiverPort: 19000,
-	Count:        100,
-	Timeout:      1,
-}
+//var defaultConfig = Config{
+//	ControlPort:  862,
+//	SenderPort:   19000,
+//	ReceiverPort: 19000,
+//	Count:        100,
+//	Timeout:      1,
+//}
 
 func main() {
 
@@ -46,18 +46,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	config := Config{}
+	config := map[string]Config{}
 
-	if configFile == nil {
-		log.Print("loading default configuration")
-		config = DefaultConfig
-	} else {
-		log.Print("loading configuration from " + *configFileFlag)
-		err = yaml.Unmarshal(configFile, &config)
-		if err != nil {
-			log.Print("failed to load configuration")
-			os.Exit(1)
-		}
+	log.Print("loading configuration from " + *configFileFlag)
+	err = yaml.Unmarshal(configFile, &config)
+	if err != nil {
+		log.Print("failed to load configuration")
+		os.Exit(1)
 	}
 
 	log.Print("Listening on " + *webListeningAddressFlag)
@@ -68,6 +63,8 @@ func main() {
 			Name: "twamp_success",
 			Help: "TWAMP sucess or not",
 		})
+		registry := prometheus.NewRegistry()
+		registry.MustRegister(twampSuccessGauge)
 
 		targetIP := net.ParseIP(r.URL.Query().Get("target"))
 
@@ -78,14 +75,17 @@ func main() {
 			log.Print("target is not provided")
 			return
 		}
+
+		module := r.URL.Query().Get("module")
+		if _, ok := config[module]; !ok {
+			msg := "module [" + module + "] is not defined"
 			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(msg))
+			log.Print(msg)
 			return
 		}
 
-		registry := prometheus.NewRegistry()
-		registry.MustRegister(twampSuccessGauge)
-
-		twampServerIPandPort := targetIP.String() + ":" + strconv.Itoa(config.ControlPort)
+		twampServerIPandPort := targetIP.String() + ":" + strconv.Itoa(int(config[module].ControlPort))
 
 		// TWAMP process
 		c := twamp.NewClient()
@@ -100,10 +100,10 @@ func main() {
 
 		session, err := connection.CreateSession(
 			twamp.TwampSessionConfig{
-				ReceiverPort: config.ReceiverPort,
-				SenderPort:   config.SenderPort,
-				Timeout:      config.Timeout,
-				Padding:      config.Count,
+				ReceiverPort: int(config[module].ReceiverPort),
+				SenderPort:   int(config[module].SenderPort),
+				Timeout:      int(config[module].Timeout),
+				Padding:      int(config[module].Count),
 				TOS:          0,
 			},
 		)
@@ -156,7 +156,7 @@ func main() {
 		session.Stop()
 		connection.Close()
 
-		// setupMetrics
+		// setup metrics
 		twampDurationGauge := prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "twamp_duration_seconds",
@@ -172,11 +172,11 @@ func main() {
 		twampDurationGauge.WithLabelValues("both", "max").Set(float64(results.Stat.Max.Seconds()))
 
 		twampDurationGauge.WithLabelValues("back", "min").Set(float64(twampDurationBckMin.Seconds()))
-		twampDurationGauge.WithLabelValues("back", "avg").Set(float64(twampdurationBckTotal / float64(config.Count)))
+		twampDurationGauge.WithLabelValues("back", "avg").Set(float64(twampdurationBckTotal / float64(config[module].Count)))
 		twampDurationGauge.WithLabelValues("back", "max").Set(float64(twampDurationBckMax.Seconds()))
 
 		twampDurationGauge.WithLabelValues("forward", "min").Set(float64(twampDurationFwdMin.Seconds()))
-		twampDurationGauge.WithLabelValues("forward", "avg").Set(float64(twampDurationFwdTotal / float64(config.Count)))
+		twampDurationGauge.WithLabelValues("forward", "avg").Set(float64(twampDurationFwdTotal / float64(config[module].Count)))
 		twampDurationGauge.WithLabelValues("forward", "max").Set(float64(twampDurationFwdMax.Seconds()))
 
 		twampSuccessGauge.Set(1)
