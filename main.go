@@ -126,11 +126,7 @@ func main() {
 		var twampDurationFwdTotal float64 = 0
 		var twampdurationBckTotal float64 = 0
 
-		results := test.RunX(config.Count, func(result *twamp.TwampResults) {
-			log.Print(time.Now())
-			log.Print(twamp.NewTwampTimestamp(time.Now()))
-			log.Print(result.SenderTimestamp)
-			log.Print(result.ReceiveTimestamp)
+		results := test.RunX(int(config[module].Count), func(result *twamp.TwampResults) {
 
 			twampDurationFwd := result.ReceiveTimestamp.Sub(result.SenderTimestamp)
 			twampDurationBck := result.FinishedTimestamp.Sub(result.Timestamp)
