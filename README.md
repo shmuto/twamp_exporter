@@ -2,11 +2,12 @@
 
 config.yaml
 ```yaml
-controlPort: 862
-senderPort: 19000
-receiverPort: 19000
-count: 100
-timeout: 1
+twamp:
+  controlPort: 862
+  senderPort: 19000
+  receiverPort: 19000
+  count: 10
+  timeout: 1
 ```
 
 ```
@@ -14,7 +15,7 @@ go run main.go -web.listen-address=0.0.0.0:8080 -config.file=config.yaml
 ```
 
 ```
-$ curl http://localhost:8080/probe?target=203.0.113.1
+$ curl http://localhost:8080/probe?target=203.0.113.1&module=twamp
 
 # HELP twamp_duration_seconds measurement result of TWAMP
 # TYPE twamp_duration_seconds gauge
