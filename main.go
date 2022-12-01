@@ -20,11 +20,17 @@ import (
 )
 
 type Config struct {
-	ControlPort       int       `yaml:"controlPort"`
-	SenderPortRange   PortRange `yaml:"senderPortRange"`
-	ReceiverPortRange PortRange `yaml:"receiverPortRange"`
-	Count             int       `yaml:"count"`
-	Timeout           int       `yaml:"timeout"`
+	ControlPort       int        `yaml:"controlPort"`
+	SenderPortRange   PortRange  `yaml:"senderPortRange"`
+	ReceiverPortRange PortRange  `yaml:"receiverPortRange"`
+	Count             int        `yaml:"count"`
+	Timeout           int        `yaml:"timeout"`
+	IP                IPProtocol `yaml:"ip"`
+}
+
+type IPProtocol struct {
+	Version  int  `yaml:"version"`
+	Fallback bool `yaml:"fallback"`
 }
 
 type PortRange struct {
@@ -32,17 +38,23 @@ type PortRange struct {
 	To   int `yaml:"to"`
 }
 
-//func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-//
-//}
+var defaultConfig = Config{
+	ControlPort:       862,
+	SenderPortRange:   PortRange{From: 19000, To: 20000},
+	ReceiverPortRange: PortRange{From: 19000, To: 20000},
+	Count:             100,
+	Timeout:           1,
+	IP:                IPProtocol{Version: 6, Fallback: true},
+}
 
-//var defaultConfig = Config{
-//	ControlPort:  862,
-//	SenderPort:   19000,
-//	ReceiverPort: 19000,
-//	Count:        100,
-//	Timeout:      1,
-//}
+func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	*s = defaultConfig
+	type plain Config
+	if err := unmarshal((*plain)(s)); err != nil {
+		return err
+	}
+	return nil
+}
 
 func main() {
 
@@ -58,7 +70,6 @@ func main() {
 	}
 
 	config := map[string]Config{}
-
 	log.Print("loading configuration from " + *configFileFlag)
 	err = yaml.Unmarshal(configFile, &config)
 	if err != nil {
@@ -74,25 +85,26 @@ func main() {
 			Name: "twamp_success",
 			Help: "TWAMP sucess or not",
 		})
+
 		registry := prometheus.NewRegistry()
 		registry.MustRegister(twampSuccessGauge)
 
 		targetIP := net.ParseIP(r.URL.Query().Get("target"))
 
 		if targetIP == nil {
-			msg := "target is not provided"
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(msg))
 			log.Print("target is not provided")
+			twampSuccessGauge.Set(0)
+			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+			h.ServeHTTP(w, r)
 			return
 		}
 
 		module := r.URL.Query().Get("module")
 		if _, ok := config[module]; !ok {
-			msg := "module [" + module + "] is not defined"
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(msg))
-			log.Print(msg)
+			log.Print("module [" + module + "] is not defined")
+			twampSuccessGauge.Set(0)
+			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+			h.ServeHTTP(w, r)
 			return
 		}
 

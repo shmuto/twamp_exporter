@@ -10,7 +10,6 @@ twamp:
   timeout: 1
 
 twamp_100:
-  controlPort: 862
   senderPortRange: 
     from: 19000
     to: 19000
@@ -18,4 +17,3 @@ twamp_100:
     from: 19000
     to: 19000
   count: 100
-  timeout: 1
