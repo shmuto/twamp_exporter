@@ -4,8 +4,12 @@ config.yaml
 ```yaml
 twamp:
   controlPort: 862
-  senderPort: 19000
-  receiverPort: 19000
+  senderPortRange: 
+    from: 19000
+    to: 20000
+  receiverPortRange: 
+    from: 19000
+    to: 20000
   count: 10
   timeout: 1
 ```

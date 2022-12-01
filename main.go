@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"math/rand"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
@@ -18,12 +20,21 @@ import (
 )
 
 type Config struct {
-	ControlPort  uint16 `yaml:"controlPort"`
-	SenderPort   uint16 `yaml:"senderPort"`
-	ReceiverPort uint16 `yaml:"receiverPort"`
-	Count        uint   `yaml:"count"`
-	Timeout      uint   `yaml:"timeout"`
+	ControlPort       int       `yaml:"controlPort"`
+	SenderPortRange   PortRange `yaml:"senderPortRange"`
+	ReceiverPortRange PortRange `yaml:"receiverPortRange"`
+	Count             int       `yaml:"count"`
+	Timeout           int       `yaml:"timeout"`
 }
+
+type PortRange struct {
+	From int `yaml:"from"`
+	To   int `yaml:"to"`
+}
+
+//func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
+//
+//}
 
 //var defaultConfig = Config{
 //	ControlPort:  862,
@@ -100,14 +111,13 @@ func main() {
 
 		session, err := connection.CreateSession(
 			twamp.TwampSessionConfig{
-				ReceiverPort: int(config[module].ReceiverPort),
-				SenderPort:   int(config[module].SenderPort),
+				ReceiverPort: GetRandomPortFromRange(config[module].ReceiverPortRange),
+				SenderPort:   GetRandomPortFromRange(config[module].SenderPortRange),
 				Timeout:      int(config[module].Timeout),
 				Padding:      int(config[module].Count),
 				TOS:          0,
 			},
 		)
-
 		if err != nil {
 			log.Print("failed to create session")
 			twampSuccessGauge.Set(0)
@@ -186,4 +196,11 @@ func main() {
 	})
 
 	http.ListenAndServe(*webListeningAddressFlag, nil)
+}
+
+func GetRandomPortFromRange(portRange PortRange) int {
+	if portRange.From == portRange.To {
+		return portRange.From
+	}
+	return portRange.From + rand.Int()%(portRange.To-portRange.From)
 }
