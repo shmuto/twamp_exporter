@@ -81,13 +81,36 @@ func main() {
 
 	http.HandleFunc("/probe", func(w http.ResponseWriter, r *http.Request) {
 
+		registry := prometheus.NewRegistry()
 		twampSuccessGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "twamp_success",
 			Help: "TWAMP sucess or not",
 		})
 
-		registry := prometheus.NewRegistry()
+		twampDurationGauge := prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "twamp_duration_seconds",
+				Help: "measurement result of TWAMP",
+			},
+			[]string{"direction", "type"},
+		)
+
+		registry.MustRegister(twampDurationGauge)
 		registry.MustRegister(twampSuccessGauge)
+
+		twampDurationGauge.WithLabelValues("both", "min").Set(0)
+		twampDurationGauge.WithLabelValues("both", "avg").Set(0)
+		twampDurationGauge.WithLabelValues("both", "max").Set(0)
+
+		twampDurationGauge.WithLabelValues("back", "min").Set(0)
+		twampDurationGauge.WithLabelValues("back", "avg").Set(0)
+		twampDurationGauge.WithLabelValues("back", "max").Set(0)
+
+		twampDurationGauge.WithLabelValues("forward", "min").Set(0)
+		twampDurationGauge.WithLabelValues("forward", "avg").Set(0)
+		twampDurationGauge.WithLabelValues("forward", "max").Set(0)
+
+		twampSuccessGauge.Set(0)
 
 		targetIP := net.ParseIP(r.URL.Query().Get("target"))
 
@@ -177,17 +200,6 @@ func main() {
 
 		session.Stop()
 		connection.Close()
-
-		// setup metrics
-		twampDurationGauge := prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Name: "twamp_duration_seconds",
-				Help: "measurement result of TWAMP",
-			},
-			[]string{"direction", "type"},
-		)
-
-		registry.MustRegister(twampDurationGauge)
 
 		twampDurationGauge.WithLabelValues("both", "min").Set(float64(results.Stat.Min.Seconds()))
 		twampDurationGauge.WithLabelValues("both", "avg").Set(float64(results.Stat.Avg.Seconds()))
