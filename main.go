@@ -10,51 +10,13 @@ import (
 	"strconv"
 	"time"
 
-	"math/rand"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	"github.com/shmuto/twamp"
+	"github.com/shmuto/twamp_exporter/config"
 	"gopkg.in/yaml.v2"
 )
-
-type Config struct {
-	ControlPort       int        `yaml:"controlPort"`
-	SenderPortRange   PortRange  `yaml:"senderPortRange"`
-	ReceiverPortRange PortRange  `yaml:"receiverPortRange"`
-	Count             int        `yaml:"count"`
-	Timeout           int        `yaml:"timeout"`
-	IP                IPProtocol `yaml:"ip"`
-}
-
-type IPProtocol struct {
-	Version  int  `yaml:"version"`
-	Fallback bool `yaml:"fallback"`
-}
-
-type PortRange struct {
-	From int `yaml:"from"`
-	To   int `yaml:"to"`
-}
-
-var defaultConfig = Config{
-	ControlPort:       862,
-	SenderPortRange:   PortRange{From: 19000, To: 20000},
-	ReceiverPortRange: PortRange{From: 19000, To: 20000},
-	Count:             100,
-	Timeout:           1,
-	IP:                IPProtocol{Version: 6, Fallback: true},
-}
-
-func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	*s = defaultConfig
-	type plain Config
-	if err := unmarshal((*plain)(s)); err != nil {
-		return err
-	}
-	return nil
-}
 
 func main() {
 
@@ -69,9 +31,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	config := map[string]Config{}
+	configModules := map[string]config.Config{}
 	log.Print("loading configuration from " + *configFileFlag)
-	err = yaml.Unmarshal(configFile, &config)
+	err = yaml.Unmarshal(configFile, &configModules)
 	if err != nil {
 		log.Print("failed to load configuration")
 		os.Exit(1)
@@ -123,7 +85,7 @@ func main() {
 		}
 
 		module := r.URL.Query().Get("module")
-		if _, ok := config[module]; !ok {
+		if _, ok := configModules[module]; !ok {
 			log.Print("module [" + module + "] is not defined")
 			twampSuccessGauge.Set(0)
 			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
@@ -131,7 +93,7 @@ func main() {
 			return
 		}
 
-		twampServerIPandPort := targetIP.String() + ":" + strconv.Itoa(int(config[module].ControlPort))
+		twampServerIPandPort := targetIP.String() + ":" + strconv.Itoa(int(configModules[module].ControlPort))
 
 		// TWAMP process
 		c := twamp.NewClient()
@@ -146,10 +108,10 @@ func main() {
 
 		session, err := connection.CreateSession(
 			twamp.TwampSessionConfig{
-				ReceiverPort: GetRandomPortFromRange(config[module].ReceiverPortRange),
-				SenderPort:   GetRandomPortFromRange(config[module].SenderPortRange),
-				Timeout:      int(config[module].Timeout),
-				Padding:      int(config[module].Count),
+				ReceiverPort: config.GetRandomPortFromRange(configModules[module].ReceiverPortRange),
+				SenderPort:   config.GetRandomPortFromRange(configModules[module].SenderPortRange),
+				Timeout:      int(configModules[module].Timeout),
+				Padding:      int(configModules[module].Count),
 				TOS:          0,
 			},
 		)
@@ -177,7 +139,7 @@ func main() {
 		var twampDurationFwdTotal float64 = 0
 		var twampdurationBckTotal float64 = 0
 
-		results := test.RunX(int(config[module].Count), func(result *twamp.TwampResults) {
+		results := test.RunX(int(configModules[module].Count), func(result *twamp.TwampResults) {
 
 			twampDurationFwd := result.ReceiveTimestamp.Sub(result.SenderTimestamp)
 			twampDurationBck := result.FinishedTimestamp.Sub(result.Timestamp)
@@ -206,11 +168,11 @@ func main() {
 		twampDurationGauge.WithLabelValues("both", "max").Set(float64(results.Stat.Max.Seconds()))
 
 		twampDurationGauge.WithLabelValues("back", "min").Set(float64(twampDurationBckMin.Seconds()))
-		twampDurationGauge.WithLabelValues("back", "avg").Set(float64(twampdurationBckTotal / float64(config[module].Count)))
+		twampDurationGauge.WithLabelValues("back", "avg").Set(float64(twampdurationBckTotal / float64(configModules[module].Count)))
 		twampDurationGauge.WithLabelValues("back", "max").Set(float64(twampDurationBckMax.Seconds()))
 
 		twampDurationGauge.WithLabelValues("forward", "min").Set(float64(twampDurationFwdMin.Seconds()))
-		twampDurationGauge.WithLabelValues("forward", "avg").Set(float64(twampDurationFwdTotal / float64(config[module].Count)))
+		twampDurationGauge.WithLabelValues("forward", "avg").Set(float64(twampDurationFwdTotal / float64(configModules[module].Count)))
 		twampDurationGauge.WithLabelValues("forward", "max").Set(float64(twampDurationFwdMax.Seconds()))
 
 		twampSuccessGauge.Set(1)
@@ -220,11 +182,4 @@ func main() {
 	})
 
 	http.ListenAndServe(*webListeningAddressFlag, nil)
-}
-
-func GetRandomPortFromRange(portRange PortRange) int {
-	if portRange.From == portRange.To {
-		return portRange.From
-	}
-	return portRange.From + rand.Int()%(portRange.To-portRange.From)
 }
