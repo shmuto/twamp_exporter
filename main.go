@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -132,20 +131,20 @@ func main() {
 			return
 		}
 
-		var twampDurationFwdMin time.Duration = time.Duration(math.MaxInt32)
-		var twampDurationFwdMax time.Duration = time.Duration(math.MinInt32)
-		var twampDurationBckMin time.Duration = time.Duration(math.MaxInt32)
-		var twampDurationBckMax time.Duration = time.Duration(math.MinInt32)
+		var twampDurationFwdMin float64 = math.MaxFloat64
+		var twampDurationFwdMax float64 = math.MinInt
+		var twampDurationBckMin float64 = math.MaxFloat64
+		var twampDurationBckMax float64 = math.MinInt
 		var twampDurationFwdTotal float64 = 0
 		var twampdurationBckTotal float64 = 0
 
 		results := test.RunX(int(configModules[module].Count), func(result *twamp.TwampResults) {
 
-			twampDurationFwd := result.ReceiveTimestamp.Sub(result.SenderTimestamp)
-			twampDurationBck := result.FinishedTimestamp.Sub(result.Timestamp)
+			twampDurationFwd := result.ReceiveTimestamp.Sub(result.SenderTimestamp).Seconds()
+			twampDurationBck := result.FinishedTimestamp.Sub(result.Timestamp).Seconds()
 
-			twampDurationFwdTotal += twampDurationFwd.Seconds()
-			twampdurationBckTotal += twampDurationBck.Seconds()
+			twampDurationFwdTotal += twampDurationFwd
+			twampdurationBckTotal += twampDurationBck
 			if twampDurationFwdMin > twampDurationFwd {
 				twampDurationFwdMin = twampDurationFwd
 			}
@@ -167,13 +166,13 @@ func main() {
 		twampDurationGauge.WithLabelValues("both", "avg").Set(float64(results.Stat.Avg.Seconds()))
 		twampDurationGauge.WithLabelValues("both", "max").Set(float64(results.Stat.Max.Seconds()))
 
-		twampDurationGauge.WithLabelValues("back", "min").Set(float64(twampDurationBckMin.Seconds()))
+		twampDurationGauge.WithLabelValues("back", "min").Set(float64(twampDurationBckMin))
 		twampDurationGauge.WithLabelValues("back", "avg").Set(float64(twampdurationBckTotal / float64(configModules[module].Count)))
-		twampDurationGauge.WithLabelValues("back", "max").Set(float64(twampDurationBckMax.Seconds()))
+		twampDurationGauge.WithLabelValues("back", "max").Set(float64(twampDurationBckMax))
 
-		twampDurationGauge.WithLabelValues("forward", "min").Set(float64(twampDurationFwdMin.Seconds()))
+		twampDurationGauge.WithLabelValues("forward", "min").Set(float64(twampDurationFwdMin))
 		twampDurationGauge.WithLabelValues("forward", "avg").Set(float64(twampDurationFwdTotal / float64(configModules[module].Count)))
-		twampDurationGauge.WithLabelValues("forward", "max").Set(float64(twampDurationFwdMax.Seconds()))
+		twampDurationGauge.WithLabelValues("forward", "max").Set(float64(twampDurationFwdMax))
 
 		twampSuccessGauge.Set(1)
 
