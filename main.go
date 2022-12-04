@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"io/ioutil"
 	"math"
 	"net"
 	"net/http"
 	"os"
-	"strconv"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -24,7 +24,7 @@ func main() {
 	flag.Parse()
 
 	// load config
-	configFile, err := ioutil.ReadFile(*configFileFlag)
+	configFile, err := os.ReadFile(*configFileFlag)
 	if err != nil || configFile == nil {
 		log.Print("failed to load " + *configFileFlag)
 		os.Exit(1)
@@ -73,35 +73,83 @@ func main() {
 
 		twampSuccessGauge.Set(0)
 
-		targetIP := net.ParseIP(r.URL.Query().Get("target"))
-
-		if targetIP == nil {
-			log.Print("target is not provided")
-			twampSuccessGauge.Set(0)
-			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
-			h.ServeHTTP(w, r)
-			return
-		}
-
 		module := r.URL.Query().Get("module")
 		if _, ok := configModules[module]; !ok {
-			log.Print("module [" + module + "] is not defined")
-			twampSuccessGauge.Set(0)
-			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
-			h.ServeHTTP(w, r)
+			handleError("Module ["+module+"] is not defined.", nil, registry, w, r)
 			return
 		}
 
-		twampServerIPandPort := targetIP.String() + ":" + strconv.Itoa(int(configModules[module].ControlPort))
+		target := r.URL.Query().Get("target")
+
+		resolver := net.Resolver{}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		var preferredIPVersion string
+		if configModules[module].IP.Version == 4 {
+			preferredIPVersion = "ip4"
+		} else {
+			preferredIPVersion = "ip6"
+		}
+
+		var targetIP net.IP
+
+		if targetIP = net.ParseIP(target); targetIP == nil {
+
+			if !configModules[module].IP.Fallback {
+
+				targetIPs, err := resolver.LookupIP(ctx, preferredIPVersion, target)
+				if err != nil {
+					handleError("Failed to resolve ["+target+"].", err, registry, w, r)
+					return
+				}
+				targetIP = targetIPs[0]
+
+			} else {
+
+				targetIPs, err := resolver.LookupIP(ctx, "ip", target)
+				if err != nil {
+					handleError("Failed to resolve ["+target+"].", err, registry, w, r)
+					return
+				}
+
+				var fallbackIP *net.IP
+				for _, ip := range targetIPs {
+					if preferredIPVersion == "ip4" {
+						if ip.To4() == nil {
+							fallbackIP = &ip
+						} else {
+							targetIP = ip
+							break
+						}
+					} else if preferredIPVersion == "ip6" {
+						if ip.To4() == nil {
+							targetIP = ip
+							break
+						} else {
+							fallbackIP = &ip
+						}
+					}
+				}
+				if targetIP == nil {
+					targetIP = *fallbackIP
+				}
+			}
+		}
+
+		var ipVersion = 6
+		if targetIP.To4() != nil {
+			ipVersion = 4
+		}
+
+		twampServerAddr := net.TCPAddr{IP: targetIP, Port: configModules[module].ControlPort}
 
 		// TWAMP process
 		c := twamp.NewClient()
-		connection, err := c.Connect(twampServerIPandPort)
+		connection, err := c.Connect(twampServerAddr.String())
 		if err != nil {
-			log.Print("Connection failed to " + twampServerIPandPort)
-			twampSuccessGauge.Set(0)
-			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
-			h.ServeHTTP(w, r)
+			handleError("Connection failed to "+twampServerAddr.String(), err, registry, w, r)
 			return
 		}
 
@@ -112,10 +160,11 @@ func main() {
 				Timeout:      int(configModules[module].Timeout),
 				Padding:      int(configModules[module].Count),
 				TOS:          0,
+				IPVersion:    ipVersion,
 			},
 		)
 		if err != nil {
-			log.Print("failed to create session")
+			log.Print("Failed to create session. Reason: ", err)
 			twampSuccessGauge.Set(0)
 			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 			h.ServeHTTP(w, r)
@@ -124,7 +173,7 @@ func main() {
 
 		test, err := session.CreateTest()
 		if err != nil {
-			log.Print("failed to create test")
+			log.Print("Failed to create test. Reason: ", err)
 			twampSuccessGauge.Set(0)
 			h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 			h.ServeHTTP(w, r)
@@ -181,4 +230,14 @@ func main() {
 	})
 
 	http.ListenAndServe(*webListeningAddressFlag, nil)
+}
+
+func handleError(message string, err error, registry *prometheus.Registry, w http.ResponseWriter, r *http.Request) {
+	if err != nil {
+		log.Print(message, " Reason: ", err.Error())
+	} else {
+		log.Print(message)
+	}
+	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+	h.ServeHTTP(w, r)
 }

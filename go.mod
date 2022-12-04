@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/rs/zerolog v1.28.0
-	github.com/shmuto/twamp v0.0.0-20221201112720-b5aca52b83c5
+	github.com/shmuto/twamp v0.0.0-20221204054125-d2c991c0f82d
 	gopkg.in/yaml.v2 v2.4.0
 )
 

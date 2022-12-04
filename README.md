@@ -12,6 +12,9 @@ twamp:
     to: 20000
   count: 10
   timeout: 1
+  ip:
+    fallback: true
+    version: 6
 ```
 
 ```
