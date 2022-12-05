@@ -1,7 +1,5 @@
 package config
 
-import "math/rand"
-
 type Config struct {
 	ControlPort       int        `yaml:"controlPort"`
 	SenderPortRange   PortRange  `yaml:"senderPortRange"`
@@ -37,11 +35,4 @@ func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 	return nil
-}
-
-func GetRandomPortFromRange(portRange PortRange) int {
-	if portRange.From == portRange.To {
-		return portRange.From
-	}
-	return portRange.From + rand.Int()%(portRange.To-portRange.From)
 }
