@@ -2,14 +2,13 @@ package main
 
 import (
 	"flag"
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog/log"
 	"github.com/shmuto/twamp_exporter/config"
 	"github.com/shmuto/twamp_exporter/prober"
-	"gopkg.in/yaml.v2"
 )
 
 func main() {
@@ -18,18 +17,10 @@ func main() {
 	var webListeningAddressFlag = flag.String("web.listen-address", "localhost:2112", "listening addres and port")
 	flag.Parse()
 
-	// load config
-	configFile, err := os.ReadFile(*configFileFlag)
-	if err != nil || configFile == nil {
-		log.Print("failed to load " + *configFileFlag)
-		os.Exit(1)
-	}
-
-	configModules := map[string]config.Config{}
-	log.Print("loading configuration from " + *configFileFlag)
-	err = yaml.Unmarshal(configFile, &configModules)
+	configModules, err := config.LoadConfigFromFile(*configFileFlag)
 	if err != nil {
 		log.Print("failed to load configuration")
+		log.Print(err)
 		os.Exit(1)
 	}
 

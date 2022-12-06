@@ -73,7 +73,7 @@ func (prober *TwampProber) Test(hostname string) *prometheus.Registry {
 
 	if twampServerIP == nil {
 		if fallbackIP == nil {
-			log.Printf("Failed to resolve %s", hostname)
+			log.Printf("failed to resolve %s", hostname)
 			return registry
 		} else {
 			twampServerIP = fallbackIP
@@ -97,8 +97,6 @@ func (prober *TwampProber) Test(hostname string) *prometheus.Registry {
 			}
 		}
 	}
-
-	log.Print(twampServerAddr.String())
 
 	var ipVersion int
 	if twampServerAddr.IP.To4() == nil {
