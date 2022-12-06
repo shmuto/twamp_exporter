@@ -25,8 +25,11 @@ jobs:
       run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o twamp_exporter -v main.go
  
     - name: gzip
+      env:
+        RELEASE_FILE: twamp_exporter.${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar
       run: |
-        tar -xzcf twamp_exporter.${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }} twamp_exporter config.yaml LICENSE README.md
+        tar -cf  twamp_exporter.${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar twamp_exporter config.yaml LICENSE README.md
+        gzip twamp_exporter.${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar
 
     - name: release
       id: create_release
@@ -38,3 +41,14 @@ jobs:
         release_name: Release ${{ github.ref }}
         draft: false
         preleease: false
+
+    - name: upload release asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: twamp_exporter.${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+        asset_name: twamp_exporter.${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+        asset_content_type: application/gzip
