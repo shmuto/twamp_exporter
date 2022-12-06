@@ -31,6 +31,7 @@ jobs:
         tar -cf  twamp_exporter.${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar twamp_exporter config.yaml LICENSE README.md
         gzip twamp_exporter.${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar
 
+  release:
     - name: release
       id: create_release
       uses: actions/create-release@v1.0.0
@@ -41,6 +42,7 @@ jobs:
         release_name: Release ${{ github.ref_name }}
         draft: false
         preleease: false
+
 
     - name: upload release asset
       id: upload-release-asset
