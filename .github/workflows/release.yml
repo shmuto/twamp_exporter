@@ -23,7 +23,7 @@ jobs:
 
     - name: Build
       run: |
-        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -v main.go -o twamp_exporter
+        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o twamp_exporter -v main.go
         tar -zcvf twamp_exporter LICENSE README.md config.yml twamp_exporter.${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
         curl -X POST \
           -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
