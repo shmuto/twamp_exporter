@@ -22,10 +22,19 @@ jobs:
         go-version: 1.18
 
     - name: Build
+      run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o twamp_exporter -v main.go
+ 
+    - name: gzip
       run: |
-        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o twamp_exporter -v main.go
-        tar -zcvf twamp_exporter.${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz twamp_exporter LICENSE README.md config.yml
-        curl -X POST \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -d "{\"tag_name\": \"${{ github.ref_name }}, \"target_commitish\": \"master\"}" \
-          https://api.github.com/repo/${{ github.repository }}/releases
+        tar -xzcf twamp_exporter.${{ github.ref }}-${{ matrix.goos }}-${{ matrix.goarch }} twamp_exporter config.yaml LICENSE README.md
+
+    - name: release
+      id: create_release
+      uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        preleease: false
