@@ -35,7 +35,7 @@ jobs:
       uses: svenstaro/upload-release-action@2.1.1
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: gzip twamp_exporter.${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+        file: twamp_exporter.${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
         asset_name: twamp_exporter.${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
         tag: ${{ github.ref_name }}
         overwrite: true
