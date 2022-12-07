@@ -43,8 +43,7 @@ func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	log.Print("checking config...")
-	if err := Validate(*s); err != nil {
+	if err := s.Validate(); err != nil {
 		return err
 	}
 
@@ -69,39 +68,39 @@ func LoadConfigFromFile(filename string) (map[string]Config, error) {
 	return configModules, nil
 }
 
-func Validate(config Config) error {
+func (c Config) Validate() error {
 	// TWAMP control port range should be in 1 to 65535
-	if 65535 < config.ControlPort && config.ControlPort < 1 {
+	if 65535 < c.ControlPort && c.ControlPort < 1 {
 		return errors.New("the value of [ControlPort] must be between 1 and 65535")
 	}
 
 	// TWAMP test port validation
-	if err := config.ReceiverPortRange.Validate(); err != nil {
+	if err := c.ReceiverPortRange.Validate(); err != nil {
 		return err
 	}
-	if err := config.SenderPortRange.Validate(); err != nil {
+	if err := c.SenderPortRange.Validate(); err != nil {
 		return err
 	}
 
 	// test count must be positive integer
-	if config.Count < 1 {
+	if c.Count < 1 {
 		return errors.New("the value of [Count] must be positive integer")
 	}
 
 	// timeout must be positive integer
-	if config.Timeout < 1 {
+	if c.Timeout < 1 {
 		return errors.New("the value of [Timeout] must be positive integer")
 	}
 
 	// IP.Version must be 4 or 6
-	if config.IP.Version != 4 && config.IP.Version != 6 {
+	if c.IP.Version != 4 && c.IP.Version != 6 {
 		return errors.New("the value of [IP.Version] must be 4 or 6")
 	}
 
 	return nil
 }
 
-func (p *PortRange) Validate() error {
+func (p PortRange) Validate() error {
 	// .From and .To must be in 1 to 65535
 	if (1 > p.From) || (p.From > 65535) || (1 > p.To) || (p.To > 65535) {
 		return errors.New("the port range is out of bounds")
