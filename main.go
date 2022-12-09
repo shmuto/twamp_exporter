@@ -14,7 +14,7 @@ import (
 func main() {
 
 	var configFileFlag = flag.String("config.file", "config.yaml", "path to config file")
-	var webListeningAddressFlag = flag.String("web.listen-address", "localhost:2112", "listening addres and port")
+	var webListeningAddressFlag = flag.String("web.listen-address", "0.0.0.0:9861", "listening addres and port")
 	flag.Parse()
 
 	configModules, err := config.LoadConfigFromFile(*configFileFlag)

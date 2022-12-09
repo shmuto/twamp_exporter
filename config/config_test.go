@@ -20,7 +20,7 @@ func TestPortRangeValidate(t *testing.T) {
 		// [From] and [To] are invalid
 		{From: invalidPortNum.From, To: invalidPortNum.To},
 
-		// [From] is greater than [To]
+		// each value are valid but [From] is greater than [To]
 		{From: validPortNum.To, To: validPortNum.From},
 	}
 
@@ -35,6 +35,7 @@ func TestPortRangeValidate(t *testing.T) {
 	goodParamsTests := []PortRange{
 		// [To] is greater than [From]
 		{From: validPortNum.From, To: validPortNum.To},
+
 		// [From] and [To] are same port
 		{From: validPortNum.From, To: validPortNum.From},
 	}
