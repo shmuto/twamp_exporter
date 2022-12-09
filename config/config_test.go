@@ -43,7 +43,7 @@ func TestPortRangeValidate(t *testing.T) {
 	t.Run("good port range", func(t *testing.T) {
 		for _, test := range goodParamsTests {
 			if err := test.Validate(); err != nil {
-				t.Errorf("PortRange.Validate() didn't work perperly when %+v", test)
+				t.Errorf("PortRange.Validate() didn't work properly when %+v", test)
 			}
 		}
 	})
@@ -86,7 +86,7 @@ func TestConfigValidate(t *testing.T) {
 
 		t.Run(testTitle, func(t *testing.T) {
 			if err := testConfig.Validate(); err == nil {
-				t.Errorf("Config.Validate() didn't work perperly when %+v", testConfig)
+				t.Errorf("Config.Validate() didn't work properly when %+v", testConfig)
 			}
 		})
 	}
