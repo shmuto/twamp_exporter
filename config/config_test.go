@@ -1,11 +1,13 @@
 package config
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 )
 
 func TestPortRangeValidate(t *testing.T) {
-	invalidPortNum := PortRange{From: -1, To: 65536}
+	invalidPortNum := PortRange{From: 0, To: 65536}
 	validPortNum := PortRange{From: 19000, To: 20000}
 
 	badParamsTests := []PortRange{
@@ -19,7 +21,7 @@ func TestPortRangeValidate(t *testing.T) {
 		{From: invalidPortNum.From, To: invalidPortNum.To},
 
 		// [From] is greater than [To]
-		{From: invalidPortNum.To, To: invalidPortNum.From},
+		{From: validPortNum.To, To: validPortNum.From},
 	}
 
 	t.Run("bad port range", func(t *testing.T) {
@@ -40,8 +42,51 @@ func TestPortRangeValidate(t *testing.T) {
 	t.Run("good port range", func(t *testing.T) {
 		for _, test := range goodParamsTests {
 			if err := test.Validate(); err != nil {
-				t.Errorf("PortRange.Validate() didn't work perpery when %+v", test)
+				t.Errorf("PortRange.Validate() didn't work perperly when %+v", test)
 			}
 		}
 	})
+}
+
+func TestConfigValidate(t *testing.T) {
+	invalidConfig := Config{
+		ControlPort:       0,
+		SenderPortRange:   PortRange{From: 0, To: 65536},
+		ReceiverPortRange: PortRange{From: 0, To: 65536},
+		Count:             0,
+		Timeout:           0,
+		IP:                IPProtocol{Version: 42, Fallback: true},
+	}
+
+	valid := reflect.ValueOf(defaultConfig)
+
+	for i := 0; i < valid.NumField(); i++ {
+		fieldName := valid.Type().Field(i).Name
+		testTitle := fmt.Sprintf("bad %s", fieldName)
+
+		// Config initialization for testing
+		// defaultConfig is also a valid Config
+		testConfig := defaultConfig
+
+		switch fieldName {
+		case "ControlPort":
+			testConfig.ControlPort = invalidConfig.ControlPort
+		case "SenderPortRange":
+			testConfig.SenderPortRange = invalidConfig.SenderPortRange
+		case "ReceiverPortRange":
+			testConfig.ReceiverPortRange = invalidConfig.ReceiverPortRange
+		case "Count":
+			testConfig.Count = invalidConfig.Count
+		case "Timeout":
+			testConfig.Timeout = invalidConfig.Timeout
+		case "IP":
+			testConfig.IP = invalidConfig.IP
+		}
+
+		t.Run(testTitle, func(t *testing.T) {
+			if err := testConfig.Validate(); err == nil {
+				t.Errorf("Config.Validate() didn't work perperly when %+v", testConfig)
+			}
+		})
+	}
 }
