@@ -1,0 +1,10 @@
+version: '3.9'
+services:
+  twamp:
+    build: .
+    network_mode: host
+    container_name: twamp
+    volumes:
+      - type: bind
+        source: ./config.yaml
+        target: /usr/share/twamp_exporter/config.yaml
