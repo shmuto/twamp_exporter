@@ -54,6 +54,8 @@ func main() {
 		h.ServeHTTP(w, r)
 	})
 
+	http.Handle("/metrics", promhttp.Handler())
+
 	http.ListenAndServe(*webListeningAddressFlag, nil)
 }
 
