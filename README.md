@@ -45,3 +45,37 @@ twamp_server_info{address="203.0.113.1",hostname="example.com"} 0
 # TYPE twamp_success gauge
 twamp_success 1
 ```
+
+
+# Usage Example
+
+## docker-compose.yml
+
+```yml
+version: '3.9'
+services:
+  twamp:
+    image: ghcr.io/shmuto/twamp_exporter:latest
+    network_mode: host
+```
+
+## prometheus.yml
+
+```yml
+scrape_configs:
+  - job_name: 'twamp'
+    static_configs:
+    - targets:
+      - 203.0.113.1
+      - example.com
+    params:
+      module: ['twamp']
+    metrics_path: /probe
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9861
+```
