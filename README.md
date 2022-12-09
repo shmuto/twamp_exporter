@@ -22,19 +22,25 @@ go run main.go -web.listen-address=0.0.0.0:8080 -config.file=config.yaml
 ```
 
 ```
-$ curl http://localhost:8080/probe?target=203.0.113.1&module=twamp
+$ curl http://localhost:8080/probe?target=example.com&module=twamp
 
-# HELP twamp_duration_seconds measurement result of TWAMP
+# HELP twamp_duration_seconds measurement results of TWAMP
 # TYPE twamp_duration_seconds gauge
-twamp_duration_seconds{direction="back",type="avg"} -2.6173188784
-twamp_duration_seconds{direction="back",type="max"} -2.147483648
-twamp_duration_seconds{direction="back",type="min"} -2.637886237
-twamp_duration_seconds{direction="both",type="avg"} 0.001345781
-twamp_duration_seconds{direction="both",type="max"} 0.001393601
-twamp_duration_seconds{direction="both",type="min"} 0.001330202
-twamp_duration_seconds{direction="forward",type="avg"} 2.6186586471
-twamp_duration_seconds{direction="forward",type="max"} 2.639215443
-twamp_duration_seconds{direction="forward",type="min"} 2.147483647
+twamp_duration_seconds{direction="back",type="avg"} -0.7642895023000001
+twamp_duration_seconds{direction="back",type="max"} -0.738620447
+twamp_duration_seconds{direction="back",type="min"} -0.789350204
+twamp_duration_seconds{direction="both",type="avg"} 0.001725047
+twamp_duration_seconds{direction="both",type="max"} 0.001984096
+twamp_duration_seconds{direction="both",type="min"} 0.001406498
+twamp_duration_seconds{direction="forward",type="avg"} 0.7659862023999999
+twamp_duration_seconds{direction="forward",type="max"} 0.790752407
+twamp_duration_seconds{direction="forward",type="min"} 0.740574478
+# HELP twamp_ip_protocol IP protocol version used in TWAMP test
+# TYPE twamp_ip_protocol gauge
+twamp_ip_protocol 4
+# HELP twamp_server_info TWAMP server information
+# TYPE twamp_server_info gauge
+twamp_server_info{address="203.0.113.1",hostname="example.com"} 0
 # HELP twamp_success TWAMP sucess or not
 # TYPE twamp_success gauge
 twamp_success 1
