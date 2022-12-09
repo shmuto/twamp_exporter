@@ -70,7 +70,7 @@ func LoadConfigFromFile(filename string) (map[string]Config, error) {
 
 func (c Config) Validate() error {
 	// TWAMP control port range should be in 1 to 65535
-	if 65535 < c.ControlPort && c.ControlPort < 1 {
+	if 65535 < c.ControlPort || c.ControlPort < 1 {
 		return errors.New("the value of [ControlPort] must be between 1 and 65535")
 	}
 
