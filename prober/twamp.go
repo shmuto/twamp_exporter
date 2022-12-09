@@ -18,25 +18,43 @@ type TwampProber struct {
 	ProberConfig config.Config
 }
 
-var (
-	twampSuccessGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "twamp_success",
-		Help: "TWAMP sucess or not",
-	})
+func (prober *TwampProber) Test(hostname string) *prometheus.Registry {
 
-	twampDurationGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "twamp_duration_seconds",
-			Help: "measurement result of TWAMP",
-		},
-		[]string{"direction", "type"},
+	var (
+		twampSuccessGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "twamp_success",
+			Help: "TWAMP sucess or not",
+		})
+
+		twampDurationGauge = prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "twamp_duration_seconds",
+				Help: "measurement results of TWAMP",
+			},
+			[]string{"direction", "type"},
+		)
+
+		twampIPProtocolGauge = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "twamp_ip_protocol",
+				Help: "IP protocol version used in TWAMP test",
+			},
+		)
+		twampServerInfoGauge = prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "twamp_server_info",
+				Help: "TWAMP server information",
+			},
+			[]string{"address", "hostname"},
+		)
 	)
-)
-
-func InitMetrics() *prometheus.Registry {
 
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(twampSuccessGauge, twampDurationGauge)
+	registry.MustRegister(
+		twampSuccessGauge,
+		twampDurationGauge,
+		twampIPProtocolGauge,
+	)
 
 	twampDurationGauge.WithLabelValues("both", "min").Set(0)
 	twampDurationGauge.WithLabelValues("both", "avg").Set(0)
@@ -49,12 +67,7 @@ func InitMetrics() *prometheus.Registry {
 	twampDurationGauge.WithLabelValues("forward", "max").Set(0)
 	twampSuccessGauge.Set(0)
 
-	return registry
-}
-
-func (prober *TwampProber) Test(hostname string) *prometheus.Registry {
-
-	registry := InitMetrics()
+	twampIPProtocolGauge.Set(float64(prober.ProberConfig.IP.Version))
 
 	twampServerIP, err := ResolveHostname(hostname, prober.ProberConfig.IP.Version)
 	if err != nil && !prober.ProberConfig.IP.Fallback {
@@ -80,10 +93,20 @@ func (prober *TwampProber) Test(hostname string) *prometheus.Registry {
 		}
 	}
 
+	var ipVersion int
+	if twampServerIP.To4() == nil {
+		ipVersion = 6
+	} else {
+		ipVersion = 4
+	}
+
+	twampIPProtocolGauge.Set(float64(ipVersion))
+
 	var twampServerAddr = net.TCPAddr{IP: twampServerIP, Port: prober.ProberConfig.ControlPort}
 
 	c := twamp.NewClient()
 	connection, err := c.Connect(twampServerAddr.String())
+	// if control connection failed, retry with fallback IP if it is present
 	if err != nil {
 		if fallbackIP == nil {
 			log.Printf("Failed to connect %s. Reason: %s", twampServerAddr.String(), err)
@@ -98,23 +121,22 @@ func (prober *TwampProber) Test(hostname string) *prometheus.Registry {
 		}
 	}
 
-	var ipVersion int
-	if twampServerAddr.IP.To4() == nil {
-		ipVersion = 6
-	} else {
-		ipVersion = 4
+	registry.MustRegister(twampServerInfoGauge)
+	twampServerInfoGauge.WithLabelValues(
+		twampServerAddr.IP.String(),
+		hostname,
+	).Set(1)
+
+	twampConfig := twamp.TwampSessionConfig{
+		ReceiverPort: GetRandomPortFromRange(prober.ProberConfig.ReceiverPortRange),
+		SenderPort:   GetRandomPortFromRange(prober.ProberConfig.SenderPortRange),
+		Timeout:      int(prober.ProberConfig.Timeout),
+		Padding:      int(prober.ProberConfig.Count),
+		TOS:          0,
+		IPVersion:    ipVersion,
 	}
 
-	session, err := connection.CreateSession(
-		twamp.TwampSessionConfig{
-			ReceiverPort: GetRandomPortFromRange(prober.ProberConfig.ReceiverPortRange),
-			SenderPort:   GetRandomPortFromRange(prober.ProberConfig.SenderPortRange),
-			Timeout:      int(prober.ProberConfig.Timeout),
-			Padding:      int(prober.ProberConfig.Count),
-			TOS:          0,
-			IPVersion:    ipVersion,
-		},
-	)
+	session, err := connection.CreateSession(twampConfig)
 	if err != nil {
 		log.Print("Failed to create session. Reason: ", err)
 		return registry
@@ -192,7 +214,6 @@ func ResolveHostname(hostname string, ipv int) (net.IP, error) {
 	} else {
 		return targetIP, nil
 	}
-
 }
 
 func GetRandomPortFromRange(portRange config.PortRange) int {
